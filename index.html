@@ -1,0 +1,705 @@
+```html id=fortune_teller_chinese
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>天命傳奇</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'china-red': '#B22222',
+                        'china-gold': '#D4A017',
+                        'china-ink': '#2F4F4F',
+                        'china-cream': '#F5F5DC',
+                        'china-dark': '#1A252F',
+                    },
+                    animation: {
+                        'flip': 'flip 0.6s ease-in-out',
+                        'pulse-glow': 'pulseGlow 1.5s ease-in-out infinite',
+                        'fade-in': 'fadeIn 0.8s ease-out',
+                        'lotus-float': 'lotusFloat 5s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        flip: {
+                            '0%': { transform: 'rotateY(0deg)' },
+                            '50%': { transform: 'rotateY(90deg)' },
+                            '100%': { transform: 'rotateY(0deg)' },
+                        },
+                        pulseGlow: {
+                            '0%, 100%': { boxShadow: '0 0 5px rgba(212, 160, 23, 0.5)' },
+                            '50%': { boxShadow: '0 0 20px rgba(212, 160, 23, 1)' },
+                        },
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'scale(0.95)' },
+                            '100%': { opacity: '1', transform: 'scale(1)' },
+                        },
+                        lotusFloat: {
+                            '0%, 100%': { transform: 'translateY(0) rotate(0deg)' },
+                            '50%': { transform: 'translateY(-20px) rotate(5deg)' },
+                        },
+                    },
+                },
+            },
+            darkMode: 'class',
+        };
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Noto Serif TC', serif, system-ui;
+        }
+
+        .china-bg {
+            background: linear-gradient(135deg, #B22222, #D4A017);
+        }
+
+        .fortune-card {
+            perspective: 1000px;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .fortune-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        .fortune-card.selected {
+            animation: pulse-glow 1.5s ease-in-out infinite;
+        }
+
+        .lotus-particle {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23D4A017" stroke-width="2"><path d="M12 3C7 3 3 7 3 12s4 9 9 9 9-4 9-9-4-9-9-9zm0 16c-3.9 0-7-3.1-7-7s3.1-7 7-7 7 3.1 7 7-3.1 7-7 7z"/></svg>') no-repeat center;
+            opacity: 0.5;
+            animation: lotus-float 5s ease-in-out infinite;
+        }
+
+        .modal-animate {
+            animation: fade-in 0.8s ease-out;
+        }
+
+        .dark .china-bg {
+            background: linear-gradient(135deg, #1A252F, #2F4F4F);
+        }
+
+        .dark .fortune-card {
+            background-color: #2F4F4F;
+            color: #F5F5DC;
+        }
+    </style>
+</head>
+<body class="bg-china-cream dark:bg-china-dark text-gray-800 dark:text-china-cream transition-colors duration-300 relative overflow-hidden">
+    <!-- Sound Effects -->
+    <audio id="selectSound" src="https://freesound.org/data/previews/171/171671_2435678-lq.mp3"></audio>
+    <audio id="successSound" src="https://freesound.org/data/previews/387/387347_4062812-lq.mp3"></audio>
+    <audio id="failSound" src="https://freesound.org/data/previews/203/203538_2617037-lq.mp3"></audio>
+    <audio id="modalSound" src="https://freesound.org/data/previews/614/614097_1413608-lq.mp3"></audio>
+
+    <!-- Particle Effects -->
+    <div class="fixed inset-0 pointer-events-none">
+        <div class="lotus-particle" style="top: 10%; left: 15%; animation-delay: 0s;"></div>
+        <div class="lotus-particle" style="top: 30%; left: 80%; animation-delay: 1s;"></div>
+        <div class="lotus-particle" style="top: 60%; left: 25%; animation-delay: 2s;"></div>
+        <div class="lotus-particle" style="top: 80%; left: 70%; animation-delay: 3s;"></div>
+    </div>
+
+    <div class="min-h-screen flex flex-col">
+        <!-- Game Header -->
+        <header class="china-bg text-china-cream p-4 shadow-md">
+            <div class="container mx-auto flex flex-wrap justify-between items-center">
+                <h1 class="text-2xl md:text-3xl font-bold flex items-center">
+                    <span class="text-4xl mr-2">📜</span> 天命傳奇
+                </h1>
+                <div class="flex items-center space-x-4">
+                    <div class="bg-china-cream/20 rounded-lg px-3 py-1">
+                        <span class="font-semibold">分數:</span>
+                        <span id="score" class="text-china-gold font-bold">0</span>
+                    </div>
+                    <div class="bg-china-cream/20 rounded-lg px-3 py-1">
+                        <span class="font-semibold">等級:</span>
+                        <span id="level" class="text-china-gold font-bold">1</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Game Container -->
+        <main class="flex-grow container mx-auto p-4">
+            <!-- Game State Display -->
+            <div id="gameState" class="hidden text-center my-4 text-xl">
+                <h2 class="text-3xl font-bold mb-2 text-china-red dark:text-china-gold">準備開啟天命！</h2>
+                <p>成為傳奇命理師，洞悉客人的命運！</p>
+            </div>
+
+            <!-- Start Screen -->
+            <div id="startScreen" class="text-center py-8 max-w-2xl mx-auto animate-[fade-in_1s_ease-out]">
+                <div class="w-40 h-40 rounded-full mx-auto mb-6 bg-[url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="%23D4A017"/><text x="50" y="65" font-size="50" text-anchor="middle" fill="%23B22222">命</text></svg>')] animate-[lotus-float_5s_ease-in-out_infinite]"></div>
+                <h2 class="text-4xl font-bold mb-6 text-china-red dark:text-china-gold">天命傳奇</h2>
+                <p class="mb-8 text-lg">化身命理大師，運用易經、紫微、風水等中式占卜術，為顧客指點迷津，贏得聲譽與榮耀！</p>
+                <button id="startBtn" class="px-8 py-3 popolo bg-china-red hover:bg-opacity-90 text-china-cream text-lg rounded-full shadow-lg transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-china-gold">
+                    開啟天命
+                </button>
+            </div>
+
+            <!-- Game Area (initially hidden) -->
+            <div id="gameArea" class="hidden">
+                <!-- Customer Request Section -->
+                <div class="mb-6 p-4 bg-white dark:bg-china-ink rounded-lg shadow-md">
+                    <div class="flex items-start">
+                        <div class="w-16 h-16 md:w-20 md:h-20 bg-gray-200 dark:bg-china-ink rounded-full overflow-hidden mr-4 flex-shrink-0">
+                            <img id="customerImage" src="" alt="顧客" class="w-full h-full object-cover" />
+                        </div>
+                        <div class="flex-grow">
+                            <div class="flex justify-between items-center mb-2">
+                                <h3 id="customerName" class="text-lg font-bold">顧客名稱</h3>
+                                <div class="bg-yellow-100 dark:bg-china-gold/20 text-yellow-800 dark:text-china-cream px-3 py-1 rounded-full text-sm">
+                                    剩餘時間: <span id="timer" class="font-bold">60</span>秒
+                                </div>
+                            </div>
+                            <p id="customerRequest" class="text-gray-700 dark:text-china-cream">顧客請求...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fortune Telling Tools -->
+                <div class="mb-6">
+                    <h3 class="text-xl font-bold mb-3 text-china-red dark:text-china-gold">選擇占卜工具</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div class="fortune-card p-3 bg-white dark:bg-china-ink rounded-lg shadow-md cursor-pointer hover:shadow-lg transition-all" data-tool="yijing">
+                            <div class="text-center">
+                                <div class="text-4xl mb-2">🎋</div>
+                                <h4 class="font-bold">易經卦象</h4>
+                            </div>
+                        </div>
+                        <div class="fortune-card p-3 bg-white dark:bg-china-ink rounded-lg shadow-md cursor-pointer hover:shadow-lg transition-all" data-tool="ziwei">
+                            <div class="text-center">
+                                <div class="text-4xl mb-2">🌌</div>
+                                <h4 class="font-bold">紫微斗數</h4>
+                            </div>
+                        </div>
+                        <div class="fortune-card p-3 bg-white dark:bg-china-ink rounded-lg shadow-md cursor-pointer hover:shadow-lg transition-all" data-tool="fengshui">
+                            <div class="text-center">
+                                <div class="text-4xl mb-2">🧭</div>
+                                <h4 class="font-bold">風水羅盤</h4>
+                            </div>
+                        </div>
+                        <div class="fortune-card p-3 bg-white dark:bg-china-ink rounded-lg shadow-md cursor-pointer hover:shadow-lg transition-all" data-tool="face">
+                            <div class="text-center">
+                                <div class="text-4xl mb-2">😊</div>
+                                <h4 class="font-bold">面相觀測</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fortune Telling Process -->
+                <div class="mb-6">
+                    <h3 class="text-xl font-bold mb-3 text-china-red dark:text-china-gold">占卜步驟</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        <div class="fortune-card p-3 bg-white dark:bg-china-ink rounded-lg shadow-md cursor-pointer hover:shadow-lg transition-all" data-step="purify">
+                            <div class="text-center">
+                                <div class="text-4xl mb-2">🕯️</div>
+                                <h4 class="font-bold">淨心祈福</h4>
+                            </div>
+                        </div>
+                        <div class="fortune-card p-3 bg-white dark:bg-china-ink rounded-lg shadow-md cursor-pointer hover:shadow-lg transition-all" data-step="divine">
+                            <div class="text-center">
+                                <div class="text-4xl mb-2">📜</div>
+                                <h4 class="font-bold">施卜推演</h4>
+                            </div>
+                        </div>
+                        <div class="fortune-card p-3 bg-white dark:bg-china-ink rounded-lg shadow-md cursor-pointer hover:shadow-lg transition-all" data-step="interpret">
+                            <div class="text-center">
+                                <div class="text-4xl mb-2">🧧</div>
+                                <h4 class="font-bold">解卦論命</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Predictions Section -->
+                <div class="mb-6">
+                    <h3 class="text-xl font-bold mb-3 text-china-red dark:text-china-gold">選擇預測結果</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="fortune-card p-3 bg-white dark:bg-china-ink rounded-lg shadow-md cursor-pointer hover:shadow-lg transition-all" data-prediction="positive">
+                            <div class="text-center">
+                                <div class="text-4xl mb-2">🎉</div>
+                                <h4 class="font-bold">吉運</h4>
+                            </div>
+                        </div>
+                        <div class="fortune-card p-3 bg-white dark:bg-china-ink rounded-lg shadow-md cursor-pointer hover:shadow-lg transition-all" data-prediction="negative">
+                            <div class="text-center">
+                                <div class="text-4xl mb-2">⚠️</div>
+                                <h4 class="font-bold">兇運</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-center">
+                    <button id="finishBtn" class="px-6 py-2 bg-china-red hover:bg-opacity-90 text-china-cream rounded-full shadow-lg transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-china-gold">
+                        完成占卜
+                    </button>
+                </div>
+            </div>
+
+            <!-- Results Modal (initially hidden) -->
+            <div id="resultsModal" class="hidden fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+                <div class="bg-white dark:bg-china-ink rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+                    <h2 id="resultTitle" class="text-2xl font-bold mb-4 text-center text-china-red dark:text-china-gold">占卜結果</h2>
+                    <p id="resultMessage" class="mb-4 text-center">結果訊息...</p>
+                    <div class="text-center mb-4">
+                        <div class="text-4xl mb-2">🎖️</div>
+                        <div class="text-lg font-bold">獲得分數: <span id="earnedPoints" class="text-china-gold">0</span></div>
+                    </div>
+                    <div class="flex justify-center">
+                        <button id="continueBtn" class="px-6 py-2 bg-china-red hover:bg-opacity-90 text-china-cream rounded-full shadow-lg transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-china-gold">
+                            繼續
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Game Footer -->
+        <footer class="china-bg text-china-cream text-center p-4 mt-auto">
+            <div class="container mx-auto">
+                <p>天命傳奇 © 2025 | 洞悉天機，指引命運</p>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Sound Effects
+            const selectSound = document.getElementById('selectSound');
+            const successSound = document.getElementById('successSound');
+            const failSound = document.getElementById('failSound');
+            const modalSound = document.getElementById('modalSound');
+
+            // Game Elements
+            const startScreen = document.getElementById('startScreen');
+            const gameArea = document.getElementById('gameArea');
+            const gameState = document.getElementById('gameState');
+            const startBtn = document.getElementById('startBtn');
+            const finishBtn = document.getElementById('finishBtn');
+            const resultsModal = document.getElementById('resultsModal');
+            const continueBtn = document.getElementById('continueBtn');
+            const scoreElement = document.getElementById('score');
+            const levelElement = document.getElementById('level');
+            const timerElement = document.getElementById('timer');
+            const customerName = document.getElementById('customerName');
+            const customerRequest = document.getElementById('customerRequest');
+            const customerImage = document.getElementById('customerImage');
+            const resultTitle = document.getElementById('resultTitle');
+            const resultMessage = document.getElementById('resultMessage');
+            const earnedPoints = document.getElementById('earnedPoints');
+            const fortuneCards = document.querySelectorAll('.fortune-card');
+
+            // Game Variables
+            let score = 0;
+            let level = 1;
+            let timer = 60;
+            let timerInterval;
+            let currentCustomer = null;
+            let selectedTool = null;
+            let selectedSteps = [];
+            let selectedPrediction = null;
+
+            // Customers Data
+            const customers = [
+                {
+                    name: '張先生',
+                    request: '吾欲知事業前程，求一卦以觀天機。',
+                    imageIndex: 1,
+                    expectation: {
+                        tool: 'yijing',
+                        steps: ['purify', 'divine', 'interpret'],
+                        prediction: 'positive'
+                    }
+                },
+                {
+                    name: '李小姐',
+                    request: '近日心有所屬，求紫微斗數探姻緣。',
+                    imageIndex: 2,
+                    expectation: {
+                        tool: 'ziwei',
+                        steps: ['purify', 'divine', 'interpret'],
+                        prediction: 'positive'
+                    }
+                },
+                {
+                    name: '王女士',
+                    request: '宅中多有不寧，求風水調和氣場。',
+                    imageIndex: 3,
+                    expectation: {
+                        tool: 'fengshui',
+                        steps: ['purify', 'interpret', 'divine'],
+                        prediction: 'negative'
+                    }
+                },
+                {
+                    name: '陳先生',
+                    request: '財運起伏不定，求面相觀運勢。',
+                    imageIndex: 4,
+                    expectation: {
+                        tool: 'face',
+                        steps: ['purify', 'divine', 'interpret'],
+                        prediction: 'positive'
+                    }
+                },
+                {
+                    name: '林女士',
+                    request: '子嗣學業不振，求易經指引前路。',
+                    imageIndex: 5,
+                    expectation: {
+                        tool: 'yijing',
+                        steps: ['purify', 'interpret', 'divine'],
+                        prediction: 'negative'
+                    }
+                }
+            ];
+
+            // Generate Placeholder Image
+            function getCustomerImage(index) {
+                const hue = (index * 60) % 360;
+                const color = `hsl(${hue}, 70%, 60%)`;
+                const initials = customers[index % customers.length].name.charAt(0);
+                return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="${encodeURIComponent(color)}"/><text x="50" y="60" font-size="40" text-anchor="middle" fill="white" font-family="Noto Serif TC">${initials}</text></svg>`;
+            }
+
+            // Start Game
+            startBtn.addEventListener('click', () => {
+                selectSound.play();
+                startScreen.classList.add('hidden');
+                gameArea.classList.remove('hidden');
+                startRound();
+            });
+
+            // Finish Button
+            finishBtn.addEventListener('click', () => {
+                selectSound.play();
+                evaluateResult();
+            });
+
+            // Continue after results
+            continueBtn.addEventListener('click', () => {
+                selectSound.play();
+                resultsModal.classList.add('hidden');
+                startRound();
+            });
+
+            // Select Fortune Cards
+            fortuneCards.forEach(card => {
+                card.addEventListener('click', () => {
+                    selectSound.play();
+                    card.classList.add('animate-flip');
+                    setTimeout(() => card.classList.remove('animate-flip'), 600);
+
+                    if (card.hasAttribute('data-tool')) {
+                        fortuneCards.forEach(c => {
+                            if (c.hasAttribute('data-tool')) {
+                                c.classList.remove('selected', 'ring-2', 'ring-china-gold');
+                            }
+                        });
+                        card.classList.add('selected', 'ring-2', 'ring-china-gold');
+                        selectedTool = card.getAttribute('data-tool');
+                    }
+
+                    if (card.hasAttribute('data-step')) {
+                        const step = card.getAttribute('data-step');
+                        if (selectedSteps.includes(step)) {
+                            selectedSteps = selectedSteps.filter(s => s !== step);
+                            card.classList.remove('selected', 'ring-2', 'ring-china-gold');
+                        } else {
+                            selectedSteps.push(step);
+                            card.classList.add('selected', 'ring-2', 'ring-china-gold');
+                        }
+                    }
+
+                    if (card.hasAttribute('data-prediction')) {
+                        fortuneCards.forEach(c => {
+                            if (c.hasAttribute('data-prediction')) {
+                                c.classList.remove('selected', 'ring-2', 'ring-china-gold');
+                            }
+                        });
+                        card.classList.add('selected', 'ring-2', 'ring-china-gold');
+                        selectedPrediction = card.getAttribute('data-prediction');
+                    }
+                });
+            });
+
+            // Start a new round
+            function startRound() {
+                clearInterval(timerInterval);
+                selectedTool = null;
+                selectedSteps = [];
+                selectedPrediction = null;
+                fortuneCards.forEach(card => {
+                    card.classList.remove('selected', 'ring-2', 'ring-china-gold');
+                });
+
+                timer = Math.max(20, 60 - (level - 1) * 5);
+                timerElement.textContent = timer;
+
+                currentCustomer = customers[Math.floor(Math.random() * customers.length)];
+                customerName.textContent = currentCustomer.name;
+                customerRequest.textContent = currentCustomer.request;
+                customerImage.src = getCustomerImage(currentCustomer.imageIndex);
+
+                timerInterval = setInterval(() => {
+                    timer--;
+                    timerElement.textContent = timer;
+                    if (timer <= 0) {
+                        clearInterval(timerInterval);
+                        evaluateResult(true);
+                    }
+                }, 1000);
+            }
+
+            // Evaluate the result
+            function evaluateResult(timeout = false) {
+                clearInterval(timerInterval);
+                let correctPoints = 0;
+                let timeBonus = 0;
+                let totalPoints = 0;
+                let correct = true;
+                let feedback = [];
+
+                if (timeout) {
+                    resultTitle.textContent = '天機未解！';
+                    resultMessage.textContent = '時間已盡，顧客不滿您的占卜速度。';
+                    earnedPoints.textContent = '0';
+                    modalSound.play();
+                    resultsModal.classList.remove('hidden');
+                    resultsModal.querySelector('div').classList.add('modal-animate');
+                    return;
+                }
+
+                if (!selectedTool || selectedSteps.length < 3 || !selectedPrediction) {
+                    resultTitle.textContent = '占卜未成！';
+                    resultMessage.textContent = '您的占卜不完整，顧客失望離去。';
+                    earnedPoints.textContent = '0';
+                    modalSound.play();
+                    resultsModal.classList.remove('hidden');
+                    resultsModal.querySelector('div').classList.add('modal-animate');
+                    return;
+                }
+
+                if (selectedTool === currentCustomer.expectation.tool) {
+                    correctPoints += 10;
+                    feedback.push('✓ 正確選擇占卜之法');
+                } else {
+                    correct = false;
+                    feedback.push('✗ 占卜之法有誤');
+                }
+
+                let correctStepsCount = 0;
+                for (let i = 0; i < currentCustomer.expectation.steps.length; i++) {
+                    if (selectedSteps[i] === currentCustomer.expectation.steps[i]) {
+                        correctStepsCount++;
+                    }
+                }
+
+                if (correctStepsCount === 3) {
+                    correctPoints += 15;
+                    feedback.push('✓ 占卜步驟無暇');
+                } else if (correctStepsCount >= 1) {
+                    correctPoints += 5;
+                    correct = false;
+                    feedback.push(`△ 步驟部分正確 (${correctStepsCount}/3)`);
+                } else {
+                    correct = false;
+                    feedback.push('✗ 步驟全誤');
+                }
+
+                if (selectedPrediction === currentCustomer.expectation.prediction) {
+                    correctPoints += 10;
+                    feedback.push('✓ 預測天機精準');
+                } else {
+                    correct = false;
+                    feedback.push('✗ 預測天機有誤');
+                }
+
+                if (correct) {
+                    timeBonus = Math.min(15, Math.floor(timer / 4));
+                }
+
+                totalPoints = correctPoints + timeBonus;
+                score += totalPoints;
+                scoreElement.textContent = score;
+
+                if (score >= level * 100) {
+                    level++;
+                    levelElement.textContent = level;
+                }
+
+                if (correct) {
+                    successSound.play();
+                    resultTitle.textContent = '天命洞悉！';
+                    resultMessage.innerHTML = `
+                        <p class="mb-2">顧客對您的占卜讚不絕口！</p>
+                        <ul class="text-left list-inside list-disc">
+                            ${feedback.map(fb => `<li>${fb}</li>`).join('')}
+                        </ul>
+                        <p class="mt-2">基礎分數: ${correctPoints} + 時機獎勵: ${timeBonus}</p>
+                    `;
+                } else {
+                    failSound.play();
+                    resultTitle.textContent = '天機不明！';
+                    resultMessage.innerHTML = `
+                        <p class="mb-2">顧客對您的占卜頗有疑慮...</p>
+                        <ul class="text-left list-inside list-disc">
+                            ${feedback.map(fb => `<li>${fb}</li>`).join('')}
+                        </ul>
+                        <p class="mt-2">基礎分數: ${correctPoints}</p>
+                    `;
+                }
+
+                earnedPoints.textContent = totalPoints;
+                modalSound.play();
+                resultsModal.classList.remove('hidden');
+                resultsModal.querySelector('div').classList.add('modal-animate');
+            }
+        });
+    </script>
+</body>
+</html>
+```
+
+---
+
+## 主要改進詳解
+
+### 1. 中式音效
+- **音效資源**：使用了 Freesound.org 的免費音效作為佔位符，模擬古箏（選擇）、琵琶（成功）、銅鑼（失敗）和風鈴（模態框）。您可以替換為更符合中國風的音效（例如從音效庫如 Zapsplat.com 獲取古琴或簫聲）。
+- **觸發時機**：
+  - 選擇工具、步驟或預測時：播放 `selectSound`。
+  - 完成占卜（成功/失敗）：播放 `successSound` 或 `failSound`。
+  - 結果模態框出現：播放 `modalSound`。
+- **注意事項**：當前音效為佔位符，建議使用高品質的 WAV 或 MP3 文件，並確保文件大小小於 500KB 以加快加載速度。
+
+### 2. 華麗動畫
+- **卡片翻轉**：`animate-flip` 使用 3D 旋轉效果，每次點擊卡片時觸發，模擬翻開命盤的感覺。
+- **粒子特效**：添加了漂浮的蓮花圖案（使用 SVG），通過 `lotus-float` 動畫實現上下漂浮和旋轉，分散在畫面四角。
+- **開始畫面**：使用 `fade-in` 動畫，畫面從模糊到清晰，中央的「命」字圖標漂浮。
+- **模態框動畫**：結果模態框出現時使用 `fade-in`，結合縮放效果。
+- **選擇高亮**：選中的卡片應用 `pulse-glow`，模擬金色光芒脈動。
+- **未來改進**：可添加全屏過場動畫（例如完成占卜時顯示祥雲，使用 Canvas 或 CSS 動畫）。
+
+### 3. 中國風配色
+- **色調**：
+  - 紅色 (`#B22222`)：用於按鈕、標題和強調元素。
+  - 金色 (`#D4A017`)：用於分數、邊框和高亮。
+  - 墨綠 (`#2F4F4F`)：深色模式的卡片背景，搭配米白 (`#F5F5DC`) 文字。
+  - 深藍 (`#1A252F`)：深色模式的主要背景。
+- **背景**：使用紅金漸變（`.china-bg`）作為頭部和底部，深色模式切換為深藍到墨綠漸變。
+- **字體**：使用 `Noto Serif TC`，一款優雅的中文襯線字體，增強傳統書卷氣息。
+
+### 4. 中式占卜工具
+- **工具替換**：
+  - 易經卦象：搖卦推演，代表經典的中式占卜。
+  - 紫微斗數：根據生辰排盤，適合感情和事業運勢。
+  - 風水羅盤：測量環境氣場，適用於家居問題。
+  - 面相觀測：觀察面部特徵，預測個人運勢。
+- **步驟更新**：
+  - 淨心祈福：焚香靜心，為占卜做準備。
+  - 施卜推演：執行具體占卜動作（搖卦、排盤等）。
+  - 解卦論命：解讀結果並給出建議。
+- **顧客數據更新**：顧客的請求和期望已調整為中式語境，例如「求一卦以觀天機」「求紫微斗數探姻緣」，更符合中國文化。
+
+### 5. 其他調整
+- **遊戲名稱**：從「算命師傳奇」改為「天命傳奇」，更具中國風的神秘感和氣勢。
+- **界面文字**：更新為更文雅的表述，例如「洞悉天機」「天機未解」。
+- **圖標**：使用 emoji 作為臨時圖標（🎋、🌌、🧭、😊），建議未來替換為中國風 SVG 圖標（例如竹簽、星盤、羅盤、面部輪廓）。
+- **深色模式**：確保所有元素在深色模式下清晰可見，卡片背景使用墨綠，文字使用米白。
+
+---
+
+## 使用說明
+
+1. **運行遊戲**：
+   - 將代碼保存為 `index.html`，在瀏覽器中直接打開即可運行。
+   - 無需額外依賴，僅使用 Tailwind CSS CDN 和 Google Fonts。
+
+2. **遊戲玩法**：
+   - 點擊「開啟天命」開始遊戲。
+   - 根據顧客請求選擇正確的占卜工具（易經、紫微等）、執行三個步驟（淨心、施卜、解卦），並預測吉兇。
+   - 在時間限制內完成占卜，根據正確性和剩餘時間獲得分數。
+   - 分數累積到 100 的倍數時升級，時間限制逐級縮短。
+
+3. **音效測試**：
+   - 當前音效為佔位符，可能與中國風略有偏差。建議替換為真實的古箏、琵琶等音效（可從 Freesound.org 下載）。
+   - 確保音效文件格式為 MP3 或 WAV，並測試加載速度。
+
+4. **動畫效果**：
+   - 卡片翻轉和粒子特效已實現，建議在高性能設備上測試以確保流暢。
+   - 如果需要更複雜的動畫（例如全屏祥雲），可以進一步使用 Canvas 或第三方庫如 GSAP。
+
+---
+
+## 未來改進建議
+
+1. **真實圖標與圖片**：
+   - 為每種占卜工具設計專屬的 SVG 圖標（例如易經的八卦圖、紫微的命盤）。
+   - 為顧客添加中國風的卡通頭像（可使用 AI 工具如 MidJourney 生成）。
+
+2. **高品質音效**：
+   - 從專業音效庫（如 Zapsplat 或 AudioJungle）獲取古箏、琵琶、簫等音效。
+   - 添加背景音樂（例如輕柔的古風音樂），並提供靜音選項。
+
+3. **進度保存**：
+   - 使用 `localStorage` 保存分數和等級，避免刷新頁面後進度丟失：
+     ```javascript
+     function saveProgress() {
+         localStorage.setItem('tianming', JSON.stringify({ score, level }));
+     }
+     function loadProgress() {
+         const saved = localStorage.getItem('tianming');
+         if (saved) {
+             const { score: savedScore, level: savedLevel } = JSON.parse(saved);
+             score = savedScore;
+             level = savedLevel;
+             scoreElement.textContent = score;
+             levelElement.textContent = level;
+         }
+     }
+     ```
+
+4. **更多顧客與隨機性**：
+   - 增加顧客數量（10-15 位），並隨機生成部分需求（例如工具從兩個選項中隨機選擇）。
+   - 示例：
+     ```javascript
+     customers.push({
+         name: '趙先生',
+         request: '事業屢受挫折，求指引。',
+         imageIndex: 6,
+         expectation: {
+             tool: ['yijing', 'ziwei'][Math.floor(Math.random() * 2)],
+             steps: ['purify', 'divine', 'interpret'],
+             prediction: 'positive'
+         }
+     });
+     ```
+
+5. **排行榜與分享**：
+   - 添加簡單的排行榜，記錄前 5 名分數。
+   - 實現分享功能，允許玩家分享分數到 X：
+     ```javascript
+     if (navigator.share) {
+         navigator.share({
+             title: '天命傳奇',
+             text: `我在天命傳奇中獲得 ${score} 分！快來挑戰！`,
+             url: window.location.href
+         });
+     }
+     ```
+
+---
