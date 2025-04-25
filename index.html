@@ -103,7 +103,9 @@
             money: 1000,
             turn: 1,
             playerPosition: 0,
-            ownedTrees: []
+            ownedTrees: [],
+            points: 0,
+            answeredQuestions: []
         };
 
         // 樹木數據
@@ -112,6 +114,38 @@
             { id: 2, name: '樟樹', price: 300, points: 70 },
             { id: 3, name: '相思樹', price: 150, points: 30 },
             { id: 4, name: '台灣杉', price: 400, points: 100 }
+        ];
+        
+        // 題庫系統
+        const questions = [
+            {
+                id: 1,
+                question: '榕樹的氣生根有什麼作用？',
+                options: ['吸收水分', '支撐樹幹', '光合作用', '儲存養分'],
+                answer: 1,
+                points: 20
+            },
+            {
+                id: 2,
+                question: '樟樹的木材有什麼特性？',
+                options: ['防蟲', '易燃', '易腐', '無味'],
+                answer: 0,
+                points: 30
+            },
+            {
+                id: 3,
+                question: '相思樹的葉子形狀是？',
+                options: ['針形', '掌狀', '羽狀複葉', '線形'],
+                answer: 2,
+                points: 15
+            },
+            {
+                id: 4,
+                question: '台灣杉是台灣特有種嗎？',
+                options: ['是', '不是'],
+                answer: 0,
+                points: 25
+            }
         ];
 
         // 擲骰子功能
@@ -147,6 +181,30 @@
                 alert('金錢不足，無法購買此樹木！');
             }
         });
+        
+        // 答題功能
+        document.getElementById('answer-question').addEventListener('click', () => {
+            const unansweredQuestions = questions.filter(q => !gameState.answeredQuestions.includes(q.id));
+            if (unansweredQuestions.length === 0) {
+                alert('你已經回答完所有問題！');
+                return;
+            }
+            
+            const randomQuestion = unansweredQuestions[Math.floor(Math.random() * unansweredQuestions.length)];
+            const answer = prompt(`${randomQuestion.question}\n選項: ${randomQuestion.options.join(', ')}`);
+            
+            if (answer !== null) {
+                const selectedOption = randomQuestion.options.indexOf(answer);
+                if (selectedOption === randomQuestion.answer) {
+                    gameState.points += randomQuestion.points;
+                    gameState.answeredQuestions.push(randomQuestion.id);
+                    alert(`回答正確！獲得 ${randomQuestion.points} 積分`);
+                } else {
+                    alert(`回答錯誤！正確答案是: ${randomQuestion.options[randomQuestion.answer]}`);
+                }
+                updateGameDisplay();
+            }
+        });
 
         // 結束回合
         document.getElementById('pass-turn').addEventListener('click', () => {
@@ -154,14 +212,43 @@
             document.getElementById('action-panel').classList.add('hidden');
             updateGameDisplay();
         });
+        
+        // 虛擬貨幣商店功能
+        document.getElementById('open-shop').addEventListener('click', () => {
+            const shopItems = [
+                { name: '樹苗禮包', cost: 50, description: '隨機獲得3棵樹苗' },
+                { name: '金錢加倍', cost: 100, description: '下回合金錢收入加倍' },
+                { name: '特殊樹種', cost: 200, description: '解鎖稀有樹種' }
+            ];
+            
+            const shopMessage = shopItems.map(item => 
+                `${item.name} - ${item.cost}積分: ${item.description}`
+            ).join('\n');
+            
+            const selection = prompt(`可用積分: ${gameState.points}\n\n商店物品:\n${shopMessage}\n\n輸入想購買的物品名稱:`);
+            
+            if (selection) {
+                const selectedItem = shopItems.find(item => item.name === selection);
+                if (selectedItem) {
+                    if (gameState.points >= selectedItem.cost) {
+                        gameState.points -= selectedItem.cost;
+                        alert(`成功購買 ${selectedItem.name}! ${selectedItem.description}`);
+                        updateGameDisplay();
+                    } else {
+                        alert('積分不足，無法購買此物品！');
+                    }
+                } else {
+                    alert('無效的物品選擇！');
+                }
+            }
+        });
 
         // 更新遊戲顯示
         function updateGameDisplay() {
             document.getElementById('money-display').textContent = gameState.money;
             document.getElementById('turn-display').textContent = `回合: ${gameState.turn}`;
             document.getElementById('discovery-count').textContent = `${gameState.ownedTrees.length} / 12`;
-            document.getElementById('point-display').textContent = 
-                gameState.ownedTrees.reduce((sum, tree) => sum + tree.points, 0);
+            document.getElementById('point-display').textContent = gameState.points;
         }
     </script>
 </head>
@@ -976,6 +1063,10 @@
         }
 
         // 啟動遊戲
+        initGame();
+    </script>
+</body>
+</html>
         initGame();
     </script>
 </body>
