@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
@@ -98,6 +98,73 @@
             }
         }
     </script>
+    <script>
+        // 遊戲狀態變量
+        let gameState = {
+            money: 1000,
+            turn: 1,
+            playerPosition: 0,
+            ownedTrees: []
+        };
+
+        // 樹木數據
+        const trees = [
+            { id: 1, name: '榕樹', price: 200, points: 50 },
+            { id: 2, name: '樟樹', price: 300, points: 70 },
+            { id: 3, name: '相思樹', price: 150, points: 30 },
+            { id: 4, name: '台灣杉', price: 400, points: 100 }
+        ];
+
+        // 擲骰子功能
+        document.getElementById('roll-dice').addEventListener('click', () => {
+            const diceValue = Math.floor(Math.random() * 6) + 1;
+            movePlayer(diceValue);
+        });
+
+        // 移動玩家
+        function movePlayer(steps) {
+            gameState.playerPosition = (gameState.playerPosition + steps) % 12;
+            updatePlayerMarker();
+            document.getElementById('action-panel').classList.remove('hidden');
+        }
+
+        // 更新玩家位置標記
+        function updatePlayerMarker() {
+            const marker = document.getElementById('player-marker');
+            const track = document.querySelector('#player-position > div');
+            const percentage = (gameState.playerPosition / 11) * 100;
+            marker.style.left = `${percentage}%`;
+        }
+
+        // 購買樹木功能
+        document.getElementById('buy-tree').addEventListener('click', () => {
+            const currentTree = trees[Math.floor(Math.random() * trees.length)];
+            if (gameState.money >= currentTree.price) {
+                gameState.money -= currentTree.price;
+                gameState.ownedTrees.push(currentTree);
+                updateGameDisplay();
+                alert(`成功購買 ${currentTree.name}! 獲得 ${currentTree.points} 點`);
+            } else {
+                alert('金錢不足，無法購買此樹木！');
+            }
+        });
+
+        // 結束回合
+        document.getElementById('pass-turn').addEventListener('click', () => {
+            gameState.turn++;
+            document.getElementById('action-panel').classList.add('hidden');
+            updateGameDisplay();
+        });
+
+        // 更新遊戲顯示
+        function updateGameDisplay() {
+            document.getElementById('money-display').textContent = gameState.money;
+            document.getElementById('turn-display').textContent = `回合: ${gameState.turn}`;
+            document.getElementById('discovery-count').textContent = `${gameState.ownedTrees.length} / 12`;
+            document.getElementById('point-display').textContent = 
+                gameState.ownedTrees.reduce((sum, tree) => sum + tree.points, 0);
+        }
+    </script>
 </head>
 <body class="transition-colors duration-300 bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
     <!-- 檢測暗模式 -->
@@ -123,7 +190,7 @@
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-accent mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 9.5l7-7 7 7M5 19.5l7-7 7 7" />
                         </svg>
-                        <h1 class="text-xl font-bold">台灣樹木探索家</h1>
+                        <h1 class="text-xl font-bold">台灣樹木大富翁</h1>
                     </div>
                     <div class="flex items-center space-x-4">
                         <div class="bg-green-100 dark:bg-green-900 px-3 py-1 rounded-full flex items-center">
@@ -138,6 +205,12 @@
                             </svg>
                             <span id="discovery-count" class="font-medium text-blue-800 dark:text-blue-200">0 / 12</span>
                         </div>
+                        <button id="roll-dice" class="bg-purple-600 hover:bg-purple-700 text-white py-1 px-3 rounded-full flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                            </svg>
+                            擲骰子
+                        </button>
                     </div>
                 </div>
             </div>
@@ -145,6 +218,38 @@
 
         <!-- 主要內容 -->
         <div class="container mx-auto px-4 py-6">
+            <!-- 遊戲狀態面板 -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-bold">遊戲狀態</h2>
+                    <div class="flex space-x-2">
+                        <div class="bg-yellow-100 dark:bg-yellow-900 px-3 py-1 rounded-full flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-600 dark:text-yellow-300 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span id="money-display" class="font-medium text-yellow-800 dark:text-yellow-200">1000</span>
+                        </div>
+                        <div class="bg-red-100 dark:bg-red-900 px-3 py-1 rounded-full flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-600 dark:text-red-300 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span id="turn-display" class="font-medium text-red-800 dark:text-red-200">回合: 1</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="player-position" class="flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-lg p-4 mb-4">
+                    <div class="relative w-full h-16 bg-gray-200 dark:bg-gray-600 rounded-lg">
+                        <div id="player-marker" class="absolute left-0 top-1/2 transform -translate-y-1/2 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
+                            P1
+                        </div>
+                    </div>
+                </div>
+                <div id="action-panel" class="hidden">
+                    <button id="buy-tree" class="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded mr-2">購買樹木</button>
+                    <button id="pass-turn" class="bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded">結束回合</button>
+                </div>
+            </div>
+            
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- 左側面板 - QR碼掃描模擬 -->
                 <div class="lg:col-span-1">
